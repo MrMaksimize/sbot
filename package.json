@@ -1,0 +1,30 @@
+{
+  "name": "courtbot",
+  "version": "0.0.1",
+  "description": "Deliver simple court data via JSON or SMS.",
+  "main": "web.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Sam Hashemi",
+  "license": "MIT",
+  "engines": {
+    "node": "0.10.x"
+  },
+  "dependencies": {
+    "async": "~0.2.10",
+    "bluebird": "~1.1.1",
+    "csv": "^0.4.1",
+    "csv-parse": "0.0.1",
+    "dotenv": "^0.5.1",
+    "express": "~3.4.8",
+    "knex": "~0.5.8",
+    "logfmt": "~0.23.0",
+    "moment": "~2.5.1",
+    "pg": "~2.11.1",
+    "request": "~2.34.0",
+    "sha1": "~1.1.0",
+    "twilio": "~1.6.0",
+    "underscore": "~1.6.0"
+  }
+}
