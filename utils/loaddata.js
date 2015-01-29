@@ -19,7 +19,7 @@ var knex = Knex.initialize({
 
 var loadData = function () {
   var yesterday = moment().subtract('days', 1).format('MMDDYYYY');
-  var url = 'http://localhost:8080/citizen_assistance_db.csv';
+  var url = process.env.CSV_DL_URL;
 
   console.log('Downloading latest CSV file...');
   request.get(url, function(req, res) {
