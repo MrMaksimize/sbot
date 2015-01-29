@@ -60,7 +60,7 @@ app.get('/sms', function(req, res) {
     var firstRec = _.first(result);
     var resCount = result.length;
     twiml.message('I think you\'re looking for ' + firstRec.contact + '. You can reach them by calling ' + firstRec.phone + ' or going to their site: ' + firstRec.url + '. They are located at ' + firstRec.address + '.');
-    twiml.message('FYI - this is off the top of my head, I have ' + (resCount - 1) + ' more potential results, but I\'m still dumb.  I do have big dreams and hope to get smarter soon.');
+    twiml.message('FYI - this is off the top of my head, I have ' + (resCount - 1) + ' more potential results, but I\'m still dumb.  I do have big dreams and hope to soon become more than a product of insomnia.');
     // Deploy to keen, return msg:
     keenClient.addEvent('searches', { search: text }, function() {
       return res.send(twiml.toString());
