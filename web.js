@@ -3,6 +3,7 @@ if (!process.env.NODE_ENV)
   var dotenv = require('dotenv').load();
 
 var twilio = require('twilio');
+var Keen = require('keen.io');
 var _ = require('lodash');
 var express = require('express');
 var logfmt = require('logfmt');
@@ -10,6 +11,12 @@ var moment = require('moment');
 var Promise = require('bluebird');
 var db = require('./db');
 var app = express();
+
+
+var keenClient = Keen.configure({
+  projectId: process.env.KEEN_PROJECT_ID,
+  writeKey: process.env.KEEN_WRITE_KEY
+});
 
 // Express Middleware
 app.use(logfmt.requestLogger());
@@ -53,7 +60,10 @@ app.get('/sms', function(req, res) {
     var firstRec = _.first(result);
     twiml.message('I think you\'re looking for ' + firstRec.contact + '. You can reach them by calling ' + firstRec.phone + ' or going to their site: ' + firstRec.url + '. They are located at ' + firstRec.address + '.');
     twiml.message('FYI, I may be wrong and dumb for now, but I hope to get smarter every day my benevolent creator, MrMaksimize works on me');
-    return res.send(twiml.toString());
+    // Deploy to keen, return msg:
+    keenClient.addEvent('searches', { search: text }, function() {
+      return res.send(twiml.toString());
+    });
   });
 });
 
