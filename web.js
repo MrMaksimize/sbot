@@ -3,6 +3,7 @@ if (!process.env.NODE_ENV)
   var dotenv = require('dotenv').load();
 
 var twilio = require('twilio');
+var _ = require('lodash');
 var express = require('express');
 var logfmt = require('logfmt');
 var moment = require('moment');
@@ -42,8 +43,23 @@ app.get('/search', function(req, res) {
   });
 });
 
+app.get('/sms', function(req, res) {
+  var twiml = new twilio.TwimlResponse();
+  var text = req.query.Body.toUpperCase();
+  //var text = req.body.Body.toUpperCase();
+  db.findPlaceFuzzy(text).then(function(result) {
+    //return res.json(result)
+    //res.send(twiml.toString());
+    var firstRec = _.first(result);
+    twiml.sms('I think you\'re looking for ' + firstRec.contact + '. You can reach them by calling ' + firstRec.phone + ' or going to their site: ' + firstRec.url + '. They are located at ' + firstRec.address + '.');
+    twiml.sms('FYI, I may be wrong and dumb, but I hope to get smarter every day my benevolent creator, MrMaksimize works on me');
+    //return res.json(firstRec);
+    return res.send(twiml.toString());
+  });
+});
+
 // Respond to text messages that come in from Twilio
-app.post('/sms', function(req, res) {
+/*app.post('/sms_old', function(req, res) {
   var twiml = new twilio.TwimlResponse();
   var text = req.body.Body.toUpperCase();
 
@@ -114,6 +130,7 @@ app.post('/sms', function(req, res) {
     res.send(twiml.toString());
   });
 });
+*/
 
 // You can pay online if ALL your individual citations can be paid online
 var canPayOnline = function(courtCase) {
