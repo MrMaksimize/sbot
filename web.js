@@ -51,9 +51,9 @@ app.get('/sms', function(req, res) {
     //return res.json(result)
     //res.send(twiml.toString());
     var firstRec = _.first(result);
-    twiml.message('I think you\'re looking for ' + firstRec.contact + '. You can reach them by calling ' + firstRec.phone + ' or going to their site: ' + firstRec.url + '. They are located at ' + firstRec.address + '.');
-    twiml.pause();
     twiml.message('FYI, I may be wrong and dumb for now, but I hope to get smarter every day my benevolent creator, MrMaksimize works on me');
+    twiml.pause();
+    twiml.message('I think you\'re looking for ' + firstRec.contact + '. You can reach them by calling ' + firstRec.phone + ' or going to their site: ' + firstRec.url + '. They are located at ' + firstRec.address + '.');
     return res.send(twiml.toString());
   });
 });
