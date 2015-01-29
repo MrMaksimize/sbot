@@ -53,10 +53,7 @@ app.get('/search', function(req, res) {
 app.get('/sms', function(req, res) {
   var twiml = new twilio.TwimlResponse();
   var text = req.query.Body.toUpperCase();
-  //var text = req.body.Body.toUpperCase();
   db.findPlaceFuzzy(text).then(function(result) {
-    //return res.json(result)
-    //res.send(twiml.toString());
     var firstRec = _.first(result);
     var resCount = result.length;
     twiml.message('I think you\'re looking for ' + firstRec.contact + '. You can reach them by calling ' + firstRec.phone + ' or going to their site: ' + firstRec.url + '. They are located at ' + firstRec.address + '.');
