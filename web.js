@@ -1,167 +1,121 @@
-
-if (!process.env.NODE_ENV)
-  var dotenv = require('dotenv').load();
-
-var twilio = require('twilio');
-var Keen = require('keen.io');
-var _ = require('lodash');
+/**
+ * Module dependencies.
+ */
 var express = require('express');
-var logfmt = require('logfmt');
+var cookieParser = require('cookie-parser');
+var compress = require('compression');
+var session = require('express-session');
+var bodyParser = require('body-parser');
+var logger = require('morgan');
+var errorHandler = require('errorhandler');
+var methodOverride = require('method-override');
+
+var secrets = require('./config/secrets');
+var _ = require('lodash');
+var connectAssets = require('connect-assets');
+var MongoStore = require('connect-mongo')(session);
+var path = require('path');
+var Keen = require('keen.io');
+var twilio = require('twilio');
 var moment = require('moment');
 var Promise = require('bluebird');
 var db = require('./db');
-var app = express();
 
-
+/**
+ * Keen Config
+ */
 var keenClient = Keen.configure({
-  projectId: process.env.KEEN_PROJECT_ID,
-  writeKey: process.env.KEEN_WRITE_KEY
+  projectId: secrets.keen.projectId,
+  writeKey: secrets.keen.writeKey
 });
 
-// Express Middleware
-app.use(logfmt.requestLogger());
-app.use(express.json());
-app.use(express.urlencoded());
-app.use(express.cookieParser(process.env.COOKIE_SECRET));
-app.use(express.cookieSession());
 
-// Allows CORS
-app.all('*', function(req, res, next) {
+
+/**
+ * Controllers (route handlers).
+ */
+/*var homeController = require('./controllers/home');
+var userController = require('./controllers/user');
+var apiController = require('./controllers/api');
+var contactController = require('./controllers/contact');*/
+var apiController = '';
+
+
+/**
+ * Create Express server.
+ */
+var app = express();
+
+/**
+ * Connect to MongoDB.
+ */
+
+/**
+ * Express configuration.
+ */
+app.set('port', process.env.PORT || 3000);
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
+app.use(compress());
+app.use(connectAssets({
+  paths: [path.join(__dirname, 'public/css'), path.join(__dirname, 'public/js')]
+}));
+app.use(logger('dev'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(methodOverride());
+app.use(cookieParser());
+app.use(session({
+  resave: true,
+  saveUninitialized: true,
+  secret: secrets.sessionSecret,
+  store: new MongoStore({ url: secrets.db, autoReconnect: true })
+}));
+
+/** CORS **/
+app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
 
-// Enable CORS support for IE8.
-app.get('/proxy.html', function(req, res) {
-  res.send('<!DOCTYPE HTML>\n' + '<script src="http://jpillora.com/xdomain/dist/0.6/xdomain.min.js" master="http://court.atlantaga.gov"></script>');
+app.use(function(req, res, next) {
+  res.locals.user = req.user;
+  next();
 });
 
+
+app.use(function(req, res, next) {
+  if (/api/i.test(req.path)) req.session.returnTo = req.path;
+  next();
+});
+
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: 31557600000 }));
+
+/**
+ * Primary app routes.
+ */
 app.get('/', function(req, res) {
-  res.send('Hello, I am Courtbot. I have a heart of justice and a knowledge of court cases.');
-});
-
-// Fuzzy search that returns cases with a partial name match or
-// an exact citation match
-app.get('/search', function(req, res) {
-  if (!req.query || !req.query.q) return res.send(400);
-  db.findPlaceFuzzy(req.query.q).then(function(result) {
-    return res.json(result);
+  return res.render('home', {
+    title: 'Home'
   });
 });
 
-app.get('/sms', function(req, res) {
-  var twiml = new twilio.TwimlResponse();
-  var text = req.query.Body.toUpperCase();
-  db.findPlaceFuzzy(text).then(function(result) {
-    var firstRec = _.first(result);
-    var resCount = result.length;
-    twiml.message('I think you\'re looking for ' + firstRec.contact + '. You can reach them by calling ' + firstRec.phone + ' or going to their site: ' + firstRec.url + '. They are located at ' + firstRec.address + '.');
-    twiml.message('FYI - this is off the top of my head, I have ' + (resCount - 1) + ' more potential results, but I\'m still dumb.  I do have big dreams and hope to soon become more than a product of insomnia.');
-    // Deploy to keen, return msg:
-    keenClient.addEvent('searches', { search: text }, function() {
-      return res.send(twiml.toString());
-    });
-  });
+/**
+ * API examples routes.
+ */
+//app.get('/api', apiController.getApi);
+
+/**
+ * Error Handler.
+ */
+app.use(errorHandler());
+
+/**
+ * Start Express server.
+ */
+app.listen(app.get('port'), function() {
+  console.log('Express server listening on port %d in %s mode', app.get('port'), app.get('env'));
 });
 
-// Respond to text messages that come in from Twilio
-/*app.post('/sms_old', function(req, res) {
-  var twiml = new twilio.TwimlResponse();
-  var text = req.body.Body.toUpperCase();
-
-  if (req.session.askedReminder) {
-    if (text === 'YES' || text === 'YEA' || text === 'YUP' || text === 'Y') {
-      var match = req.session.match;
-      db.addReminder({
-        caseId: match.id,
-        phone: req.body.From,
-        originalCase: JSON.stringify(match)
-      }, function(err, data) {});
-
-      twiml.sms('Sounds good. We\'ll text you a day before your case. Call us at (404) 954-7914 with any other questions.');
-      req.session.askedReminder = false;
-      res.send(twiml.toString());
-    } else if (text === 'NO' || text ==='N') {
-      twiml.sms('Alright, no problem. See you on your court date. Call us at (404) 954-7914 with any other questions.');
-      req.session.askedReminder = false;
-      res.send(twiml.toString());
-    }
-  }
-
-  if (req.session.askedQueued) {
-    if (text === 'YES' || text === 'YEA' || text === 'YUP' || text === 'Y') {
-      db.addQueued({
-        citationId: req.session.citationId,
-        phone: req.body.From,
-      }, function(err, data) {});
-
-      twiml.sms('Sounds good. We\'ll text you in the next 14 days. Call us at (404) 954-7914 with any other questions.');
-      req.session.askedQueued = false;
-      res.send(twiml.toString());
-    } else if (text === 'NO' || text ==='N') {
-      twiml.sms('No problem. Call us at (404) 954-7914 with any other questions.');
-      req.session.askedQueued = false;
-      res.send(twiml.toString());
-    }
-  }
-
-  db.findCitation(text, function(err, results) {
-    // If we can't find the case, or find more than one case with the citation
-    // number, give an error and recommend they call in.
-    if (!results || results.length === 0 || results.length > 1) {
-      var correctLengthCitation = 6 <= text.length && text.length <= 9;
-      if (correctLengthCitation) {
-        twiml.sms('Couldn\'t find your case. It takes 14 days for new citations to appear in the sytem. Would you like a text when we find your information? (Reply YES or NO)');
-
-        req.session.askedQueued = true;
-        req.session.citationId = text;
-      } else {
-        twiml.sms('Sorry, we couldn\'t find that court case. Please call us at (404) 954-7914.');
-      }
-    } else {
-      var match = results[0];
-      var name = cleanupName(match.defendant);
-      var date = moment(match.date).format('dddd, MMM Do');
-
-      if (canPayOnline(match)){
-        twiml.sms('You can pay now and skip court. Just call (404) 658-6940 or visit court.atlantaga.gov. \n\nOtherwise, your court date is ' + date + ' at ' + match.time +', in courtroom ' + match.room + '.');
-      } else {
-        twiml.sms('Found a court case for ' + name + ' on ' + date + ' at ' + match.time +', in courtroom ' + match.room +'. Would you like a reminder the day before? (reply YES or NO)');
-
-        req.session.match = match;
-        req.session.askedReminder = true;
-      }
-    }
-
-    res.send(twiml.toString());
-  });
-});
-*/
-
-// You can pay online if ALL your individual citations can be paid online
-var canPayOnline = function(courtCase) {
-  var eligible = true;
-  courtCase.citations.forEach(function(citation) {
-    if (citation.payable !== '1') eligible = false;
-  });
-  return eligible;
-};
-
-var cleanupName = function(name) {
-  // Switch LAST, FIRST to FIRST LAST
-  var bits = name.split(',');
-  name = bits[1] + ' ' + bits[0];
-  name = name.trim();
-
-  // Change FIRST LAST to First Last
-  name = name.replace(/\w\S*/g, function(txt) { return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase(); });
-
-  return name;
-};
-
-var port = Number(process.env.PORT || 5000);
-app.listen(port, function() {
-  console.log("Listening on " + port);
-});
-
+module.exports = app;
