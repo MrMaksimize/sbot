@@ -3,7 +3,7 @@ if (!process.env.NODE_ENV)
 
 module.exports = {
 
-  mongoDb: process.env.MONGODB || 'mongodb://localhost:27017/sdbot',
+  mongoDb: process.env.MONGOLAB_URI || 'mongodb://localhost:27017/sanbot',
   pgDb: process.env.DATABASE_URL || 'postgres://MrMaksimize@localhost/knowbot',
 
   sessionSecret: process.env.SESSION_SECRET || 'Your Session Secret goes here',
