@@ -1,9 +1,10 @@
 var crypto = require('crypto');
 var Knex = require('knex');
 var Promise = require('bluebird');
+var secrets = require('./config/secrets.js');
 var knex = Knex.initialize({
   client: 'pg',
-  connection: process.env.DATABASE_URL
+  connection: secrets.pgDb
 });
 
 exports.findCitation = function(citation, callback) {
@@ -22,7 +23,7 @@ exports.findPlaceFuzzy = function(str) {
 };
 
 exports.addReminder = function(data, callback) {
-  var cipher = crypto.createCipher('aes256', process.env.PHONE_ENCRYPTION_KEY);
+  var cipher = crypto.createCipher('aes256', secrets.twilio.encryptionKey);
   var encryptedPhone = cipher.update(data.phone, 'utf8', 'hex') + cipher.final('hex');
 
   knex('reminders').insert({
@@ -35,7 +36,7 @@ exports.addReminder = function(data, callback) {
 };
 
 exports.addQueued = function(data, callback) {
-  var cipher = crypto.createCipher('aes256', process.env.PHONE_ENCRYPTION_KEY);
+  var cipher = crypto.createCipher('aes256', secrets.twilio.encryptionKey);
   var encryptedPhone = cipher.update(data.phone, 'utf8', 'hex') + cipher.final('hex');
 
   knex('queued').insert({

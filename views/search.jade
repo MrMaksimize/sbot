@@ -1,0 +1,27 @@
+extends layout
+
+block content
+  h1= title
+  //ul.results-lists
+  each result in results
+    .panel.panel-default
+      .panel-heading
+        .panel-title
+          a(href=result.url title=result.contact target='_blank')= result.contact
+      .panel-body
+        .row
+          .col-md-1
+            strong Phone:
+          .col-md-11= result.phone
+        .row
+          .col-md-1
+            strong Address:
+          .col-md-11= result.address
+
+        .row
+          .col-md-1
+            strong Notes:
+          .col-md-11= result.notes
+
+
+

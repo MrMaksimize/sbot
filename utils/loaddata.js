@@ -1,8 +1,5 @@
 // Downloads the latest courtdate CSV file and
 // rebuilds the database. For best results, load nightly.
-if (!process.env.NODE_ENV)
-  var dotenv = require('dotenv').load();
-
 
 var http = require('http');
 var moment = require('moment');
@@ -10,16 +7,17 @@ var request = require('request');
 var parse = require('csv-parse');
 var Promise = require('bluebird');
 var sha1 = require('sha1');
+var secrets = require('../config/secrets.js');
 
 var Knex = require('knex');
 var knex = Knex.initialize({
   client: 'pg',
-  connection: process.env.DATABASE_URL
+  connection: secrets.pgDb
 });
 
 var loadData = function () {
   var yesterday = moment().subtract('days', 1).format('MMDDYYYY');
-  var url = process.env.CSV_DL_URL;
+  var url = secrets.csvDownloadUrl;
 
   console.log('Downloading latest CSV file...');
   request.get(url, function(req, res) {
@@ -30,8 +28,6 @@ var loadData = function () {
         console.log(err);
         process.exit(1);
       }
-      console.log('rows');
-      console.log(rows);
       console.log('Extracting information...');
       var places = rows;
       recreateDB(places, function() {
