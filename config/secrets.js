@@ -1,7 +1,5 @@
-
 if (!process.env.NODE_ENV)
   var dotenv = require('dotenv').load();
-
 
 module.exports = {
 
